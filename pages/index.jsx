@@ -1,6 +1,9 @@
+import React, { useRef, useState } from 'react'
 import Head from 'next/head';
 import { observable } from "mobx";
 import { observer } from "mobx-react-lite";
+import 'mobx-react-lite/batchingForReactDom';
+import { Canvas, useFrame } from 'react-three-fiber'
 
 import Slider from '../components/Slider';
 import styles from '../styles/home.module.scss';
@@ -12,6 +15,31 @@ const appState = observable({
   width: 1.2,
   radius: 45,
 });
+
+function Box(props) {
+  // This reference will give us direct access to the mesh
+  const mesh = useRef()
+
+  // Set up state for the hovered and active state
+  const [hovered, setHover] = useState(false)
+  const [active, setActive] = useState(false)
+
+  // Rotate mesh every frame, this is outside of React without overhead
+  // useFrame(() => (mesh.current.rotation.x = mesh.current.rotation.y += 0.01))
+
+  return (
+    <mesh
+      {...props}
+      ref={mesh}
+      scale={active ? [1.5, 1.5, 1.5] : [1, 1, 1]}
+      onClick={e => setActive(!active)}
+      onPointerOver={e => setHover(true)}
+      onPointerOut={e => setHover(false)}>
+      <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
+      <meshStandardMaterial attach="material" color={hovered ? 'hotpink' : 'orange'} />
+    </mesh>
+  )
+}
 
 const Main = observer(({ appState }) => {
   const { height, width, radius, } = appState;
@@ -39,7 +67,12 @@ const Main = observer(({ appState }) => {
 
         </div>
 
-        <canvas className={styles.canvas}></canvas>
+        <Canvas className={styles.canvas}>
+          <ambientLight />
+          <pointLight position={[10, 10, 10]} />
+          <Box position={[-1.2, 0, 0]} />
+          <Box position={[1.2, 0, 0]} />
+        </Canvas>
       </main>
     </div>
   );
