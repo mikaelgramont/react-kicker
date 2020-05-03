@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { observable } from "mobx";
-import { observer } from "mobx-react";
+import { observer } from "mobx-react-lite";
 
 import Slider from '../components/Slider';
 import styles from '../styles/home.module.scss';
