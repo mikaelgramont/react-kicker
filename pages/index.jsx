@@ -6,15 +6,64 @@ import 'mobx-react-lite/batchingForReactDom';
 import { Canvas, useFrame } from 'react-three-fiber'
 
 import Slider from '../components/Slider';
+import Kicker from '../models/Kicker';
 import styles from '../styles/home.module.scss';
 
+const config = {
+  'model3d': {
+    'sides': {
+      'steps': 30,
+      'thickness': 0.03,
+      'extraLength': 0.1,
+      'minHeight': 0.015
+    },
+    'slats': {
+      'defaultLength': 0.015,
+      'thickness': 0.015,
+      'space': 0.01
+    },
+    'struts': {
+      'side': 0.08,
+      'smallSide': 0.04,
+      'maximumDistance': 0.3
+    },
+    'surface': {
+      'thickness': 0.015
+    }
+  },
+  'units': null,
+
+  'UNIT_METERS': 'm',
+  'UNIT_FEET': 'ft',
+  'UNIT_DEGREES': '°'
+};
+
 const title = 'React Kicker';
+const kickerModel = new Kicker(config);
+
+const INITIAL_HEIGHT = 1.0;
+const INITIAL_WIDTH = 1.2;
+const INITIAL_ANGLE = 45;
+
+const INITIAL_LENGTH = kickerModel.calculateLength(INITIAL_HEIGHT, INITIAL_ANGLE);
+const INITIAL_RADIUS = kickerModel.calculateRadius(INITIAL_HEIGHT, INITIAL_ANGLE);
+const INITIAL_ARC = kickerModel.calculateArc(INITIAL_RADIUS, INITIAL_ANGLE);
 
 const appState = observable({
-  height: 1.0,
-  width: 1.2,
-  radius: 45,
+  angle: INITIAL_ANGLE,
+  arc: INITIAL_ARC,
+  height: INITIAL_HEIGHT,
+  length: INITIAL_LENGTH,
+  radius: INITIAL_RADIUS,
+  width: INITIAL_WIDTH,
 });
+
+const updateCalculations = (appState) => {
+  appState.length = kickerModel.calculateLength(appState.height, appState.angle);
+  appState.radius = kickerModel.calculateRadius(appState.height, appState.angle);
+  appState.arc = kickerModel.calculateArc(appState.radius, appState.angle);
+};
+
 
 function Box(props) {
   // This reference will give us direct access to the mesh
@@ -42,11 +91,19 @@ function Box(props) {
 }
 
 const Main = observer(({ appState }) => {
-  const { height, width, radius, } = appState;
+  const { angle, arc, height, length, radius, width, } = appState;
 
-  const onHeightChange = (e) => {appState.height = e.currentTarget.value; };
+  const onHeightChange = (e) => {
+    appState.height = e.currentTarget.value;
+    updateCalculations(appState);
+  };
+
   const onWidthChange = (e) => { appState.width = e.currentTarget.value; };
-  const onRadiusChange = (e) => { appState.radius = e.currentTarget.value; };
+
+  const onAngleChange = (e) => {
+    appState.angle = e.currentTarget.value;
+    updateCalculations(appState);
+  };
 
   return (
     <div className="container">
@@ -57,15 +114,23 @@ const Main = observer(({ appState }) => {
       <main>
         <h1 className="title">{title}</h1>
 
-        <div className={styles.input}>
-          <Slider onChange={onHeightChange} className={styles.slider} label="height" id="height" name="height" min={0.5} max={3} value={height} />
-          <Slider onChange={onWidthChange} className={styles.slider} label="width" id="width" name="width" min={0.5} max={3} value={width} />
-          <Slider onChange={onRadiusChange} className={styles.slider} label="radius" id="radius" name="radius" min={30} max={89} value={radius}/>
-        </div>
+        <form>
+          <div className={styles.input}>
+            <Slider onChange={onHeightChange} className={styles.slider} label="height" id="height" name="height" step="0.1" min={0.5} max={3} value={height} />
+            <Slider onChange={onWidthChange} className={styles.slider} label="width" id="width" name="width" step="0.1" min={0.5} max={3} value={width} />
+            <Slider onChange={onAngleChange} className={styles.slider} label="angle" id="angle" name="angle" step="1" min={30} max={89} value={angle}/>
+          </div>
 
-        <div className={styles.output}>
-
-        </div>
+          <output name="length" className={styles.output} htmlFor="height width angle">
+            Length: { length }
+          </output>
+          <output name="length" className={styles.output} htmlFor="height width angle">
+            Arc: { arc }
+          </output>
+          <output name="length" className={styles.output} htmlFor="height width angle">
+            Radius: { radius }
+          </output>
+        </form>
 
         <Canvas className={styles.canvas}>
           <ambientLight />
