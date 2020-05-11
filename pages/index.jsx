@@ -3,14 +3,18 @@ import Head from 'next/head';
 import { observable } from "mobx";
 import { observer } from "mobx-react-lite";
 import 'mobx-react-lite/batchingForReactDom';
-import { Canvas, useFrame } from 'react-three-fiber'
+import { Canvas, useFrame, useThree } from 'react-three-fiber'
+import { OrbitControls } from 'drei';
+import * as THREE from 'three';
 
+import Kicker from '../components/Kicker';
 import Slider from '../components/Slider';
-import Kicker from '../models/Kicker';
+import KickerModel from '../models/KickerModel';
+import mapPoints from '../models/mapPoints.json';
 import styles from '../styles/home.module.scss';
 
 const title = 'React Kicker';
-const kickerModel = new Kicker();
+const kickerModel = new KickerModel();
 
 const INITIAL_HEIGHT = 1.0;
 const INITIAL_WIDTH = 1.2;
@@ -34,6 +38,39 @@ const updateCalculations = (appState) => {
   appState.radius = kickerModel.calculateRadius(appState.height, appState.angle);
   appState.arc = kickerModel.calculateArc(appState.radius, appState.angle);
 };
+
+const createMeshGeometry = (data, size, scaleVector) => {
+  var geometry = new THREE.PlaneGeometry(1.0, 1.0, size - 1, size - 1);
+  for (var x = 0; x < size; x++) {
+    for (var z = 0; z < size; z++) {
+      var vertexX = x / size * scaleVector.x;
+      var vertexY = data[x][z]['z'] * scaleVector.y;
+      var vertexZ = z / size * scaleVector.z;
+      geometry.vertices[x + z * size] = new THREE.Vector3(
+        vertexX,
+        vertexY,
+        vertexZ
+      );
+    }
+  }
+
+  geometry.vertices[0].y = 1000;
+
+  // Offset all vertices so that the mesh is centered and flush with minY.
+  geometry.computeBoundingBox();
+  var boundingBox = geometry.boundingBox.clone();
+  var xRange = boundingBox.max.x - boundingBox.min.x;
+  var zRange = boundingBox.max.z - boundingBox.min.z;
+  var offset = new THREE.Vector3(
+    xRange / 2,
+    0,
+    zRange / 2);
+  geometry.vertices.forEach(function(vertex) {
+    vertex.sub(offset);
+  });
+  console.log({ geometry });
+  return geometry;
+}
 
 
 function Box(props) {
@@ -59,6 +96,27 @@ function Box(props) {
       <meshStandardMaterial attach="material" color={hovered ? 'hotpink' : 'orange'} />
     </mesh>
   )
+}
+
+function HeightMap(props) {
+  const { scene } = useThree();
+  window.scene = scene;
+  if (typeof __THREE_DEVTOOLS__ !== 'undefined') {
+    __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent('observe', {detail: scene}));
+  }
+  console.log({scene});
+
+  const mapGeometry = createMeshGeometry(mapPoints, mapPoints.length, new THREE.Vector3(5.0, 0.01, 5.0));
+  return (
+
+    <mesh
+      {...props}
+      name="heightMap"
+      geometry={mapGeometry}
+    >
+      <meshStandardMaterial attach="material" color="green"/>
+    </mesh>
+  );
 }
 
 const Main = observer(({ appState }) => {
@@ -103,11 +161,14 @@ const Main = observer(({ appState }) => {
           </output>
         </form>
 
-        <Canvas className={styles.canvas}>
+        <Canvas className={styles.canvas} style={{height: '500px'}}>
+          <OrbitControls />
+          <HeightMap position={[0, -2.5, 0]} name="heightMap" />
           <ambientLight />
           <pointLight position={[10, 10, 10]} />
-          <Box position={[-1.2, 0, 0]} />
-          <Box position={[1.2, 0, 0]} />
+          <Box position={[-1.2, 0, 0]} name="toto" />
+          <Box position={[1.2, 0, 0]} name="tata" />
+          <Kicker angle={angle} radius={radius} width={width} />
         </Canvas>
       </main>
     </div>

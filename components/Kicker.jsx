@@ -1,6 +1,10 @@
-import config from '../config';
+import React from 'react';
+import * as THREE from 'three';
 
-const { extraLength, minHeight: minY, sides, } = config.model3d.sides;
+import config from '../config';
+import Side from './Kicker/Side';
+
+const { extraLength, minHeight: minY, steps: sideSteps, } = config.model3d.sides;
 const { thickness, } = config.model3d.surface;
 
 const calculatePoints = (minX, minY, angle, radius) => {
@@ -8,8 +12,8 @@ const calculatePoints = (minX, minY, angle, radius) => {
   let currentAngleRad, x, y;
 
   const points = [];
-  for (let i = 0; i <= sides; i++) {
-    currentAngleRad = i / sides * angleRad;
+  for (let i = 0; i <= sideSteps; i++) {
+    currentAngleRad = i / sideSteps * angleRad;
     x = radius * Math.sin(currentAngleRad);
     y = radius * (1 - Math.cos(currentAngleRad));
     if (y < minY) {
@@ -50,11 +54,19 @@ const calculateSurfacePoints = (angle, radius) => {
   return points;
 };
 
-const Kicker3d = (angle, radius, width) => {
+const Kicker = ({ angle, radius, width }) => {
   const sidePoints = calculateSidePoints(angle, radius);
   const surfacePoints = calculateSurfacePoints(angle, radius);
+  console.log({ sidePoints, surfacePoints });
+  // const struts = [];
 
-  console.log({sidePoints, surfacePoints});
+  const sideOffset = new THREE.Vector3(0, 0, width / 2);
+  return (
+    <>
+      <Side name="sideR" offset={sideOffset} points={sidePoints} />
+      <Side name="sideL" offset={sideOffset.negate()} points={sidePoints} />
+    </>
+  );
 };
 
-export default Kicker3d;
+export default Kicker;
